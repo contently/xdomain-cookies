@@ -1,3 +1,167 @@
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, {
+/******/ 				configurable: false,
+/******/ 				enumerable: true,
+/******/ 				get: getter
+/******/ 			});
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = 0);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var xDomainCookie = __webpack_require__(1);
+
+(function (exports) {
+    "use strict";
+    function pbUserCookieProvider(guidGenerator, playbuzzHomeUrl, debug) {
+
+    // Initialize the cross domain cookie library.
+    // At the iframe path there should be an html named 'xdomain_cookie.html'.
+    // The cookies will be saved under this domain.
+    var IFRAME_PATH = playbuzzHomeUrl,
+        IFRAME_POSTMESSAGE_NAMESPACE = '',
+        IFRAME_DEBUG = debug,
+        COOKIE_NAME = 'playbuzz',
+        COOKIE_EXPIRY_DAYS = 30,
+        CHECK_INTERVAL = 200;
+
+    var xdomainCookieProvider = window.xDomainCookie(IFRAME_PATH, IFRAME_POSTMESSAGE_NAMESPACE, IFRAME_DEBUG),
+        user = null;
+
+    // Implementation
+
+    return {
+        init: init,
+        get: get
+    };
+
+    function init(onFailure) {
+
+        // Try getting the user cookie from the xdomain provider.
+        xdomainCookieProvider.get(COOKIE_NAME, function (result) {
+
+            // If cookie found, set it.
+            if (result !== null) {
+                user = result;
+                return;
+            }
+
+            // If no cookie found, create anonymous user cookie and set it.
+            var anonymousUser = createAnonymousUser();
+            user = anonymousUser;
+            xdomainCookieProvider.set(COOKIE_NAME, anonymousUser, COOKIE_EXPIRY_DAYS);
+        });
+
+        // Subscribe to a case of a failure.
+        xdomainCookieProvider.subscribeToFailure(function (cookieFailed, localStorageFailed) {
+            onFailure(JSON.parse(user), cookieFailed, localStorageFailed);
+        });
+    }
+
+    /**
+     * Function that gets the user cookie in an async way.
+     * If a null value is found, it will keep trying to fetch the cookie.
+     * Will not call the given callback until a value was found.
+     * @param callback
+     */
+    function get(callback) {
+
+        // If a user exist, return it.
+        if (user !== null) {
+            callback(user);
+            return;
+        }
+
+        // If a user does not yet exist, wait for it.
+        var interval = setInterval(function () {
+
+            // If a user exist, return it, and cancel interval.
+            if (user !== null) {
+                clearInterval(interval);
+                callback(user);
+            }
+
+        }, CHECK_INTERVAL);
+    }
+
+    /**
+     * A function that creates an anonymous user cookie.
+     */
+    function createAnonymousUser() {
+        return JSON.stringify({
+            userId: guidGenerator.generate(),
+            nickname: 'Anonymous_user',
+            origin: 'Anonymous',
+            hasAccounts: false
+        });
+    }
+}
+
+    exports.pbUserCookieProvider = pbUserCookieProvider;
+})(window);
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports) {
+
 (function (exports) {
     "use strict";
 
@@ -190,3 +354,7 @@
 
     exports.xDomainCookie = xDomainCookie;
 })(window);
+
+
+/***/ })
+/******/ ]);
